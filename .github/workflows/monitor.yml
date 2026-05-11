@@ -1,0 +1,110 @@
+name: Monitor
+
+on:
+  schedule:
+    - cron: '0 */2 * * *'
+  workflow_dispatch:
+
+jobs:
+  monitor:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      issues: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: python -m venv .venv && .venv/bin/pip install -r requirements.txt
+
+      - name: Configure Kaggle credentials
+        env:
+          KAGGLE_USERNAME: ${{ secrets.KAGGLE_USERNAME }}
+          KAGGLE_KEY: ${{ secrets.KAGGLE_KEY }}
+        run: |
+          mkdir -p ~/.kaggle
+          python3 -c "
+          import json, os
+          creds = {'username': os.environ['KAGGLE_USERNAME'], 'key': os.environ['KAGGLE_KEY']}
+          with open(os.path.expanduser('~/.kaggle/kaggle.json'), 'w') as f:
+              json.dump(creds, f)
+          "
+          chmod 600 ~/.kaggle/kaggle.json
+
+      - name: Run morning check
+        run: |
+          mkdir -p logs
+          bash morning_check.sh | tee -a logs/score_history.log
+
+      - name: Check for score drop
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python3 - <<'PYEOF'
+          import re, subprocess, os, sys
+
+          log_path = "logs/score_history.log"
+          if not os.path.exists(log_path):
+              sys.exit(0)
+
+          with open(log_path) as f:
+              content = f.read()
+
+          scores = re.findall(
+              r'Current:\s*([0-9]+\.?[0-9]*)\s*\|.*?Previous:\s*([0-9]+\.?[0-9]*)',
+              content
+          )
+          if not scores:
+              sys.exit(0)
+
+          cur, prev = float(scores[-1][0]), float(scores[-1][1])
+          if cur - prev >= -30:
+              sys.exit(0)
+
+          existing = subprocess.run(
+              ["gh", "issue", "list", "--search", "Score drop alert",
+               "--state", "open", "--json", "title"],
+              capture_output=True, text=True
+          )
+          if existing.stdout and "Score drop alert" in existing.stdout:
+              print("Score drop issue already open — skipping.")
+              sys.exit(0)
+
+          title = f"Score drop alert: {prev:.1f} → {cur:.1f}"
+          body = (
+              f"Score dropped **{abs(cur - prev):.1f} points** "
+              f"({prev:.1f} → {cur:.1f}).\n\n"
+              "Check `logs/score_history.log` and recent submissions.\n\n"
+              "Run `bash morning_check.sh` locally for latest status."
+          )
+          subprocess.run(
+              ["gh", "issue", "create", "--title", title, "--body", body],
+              check=True
+          )
+          print(f"Opened issue: {title}")
+          PYEOF
+
+      - name: Daily replay download (8 UTC only)
+        run: |
+          HOUR=$(date -u +%-H)
+          if [ "$HOUR" = "8" ] || [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            .venv/bin/python daily_review.py || echo "daily_review.py failed (non-fatal)"
+          fi
+
+      - name: Commit logs and replays
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -f logs/score_history.log
+          git add -f replays/ 2>/dev/null || true
+          if ! git diff --cached --quiet; then
+            git commit -m "auto: snapshot $(date -u '+%Y-%m-%d %H:%M UTC')"
+            git push || echo "Push failed — possible concurrent run conflict"
+          fi

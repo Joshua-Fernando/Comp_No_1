@@ -1,0 +1,62 @@
+name: Benchmark
+
+on:
+  push:
+    paths:
+      - 'main_v*.py'
+      - 'main.py'
+
+jobs:
+  benchmark:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: python -m venv .venv && .venv/bin/pip install -r requirements.txt
+
+      - name: Benchmark changed agent files
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          SHA: ${{ github.sha }}
+          BEFORE: ${{ github.event.before }}
+        run: |
+          if [ "$BEFORE" = "0000000000000000000000000000000000000000" ]; then
+            FILES=$(git show --name-only --format="" HEAD | grep -E '^main(_v[0-9]+)?\.py$' || true)
+          else
+            FILES=$(git diff --name-only "$BEFORE" "$SHA" | grep -E '^main(_v[0-9]+)?\.py$' || true)
+          fi
+
+          if [ -z "$FILES" ]; then
+            echo "No agent files changed — skipping benchmark."
+            exit 0
+          fi
+
+          FAILED=0
+          printf "## Benchmark Results\n\n" > /tmp/comment.md
+
+          for f in $FILES; do
+            [ -f "$f" ] || continue
+            echo "=== Benchmarking $f ==="
+            .venv/bin/python benchmark.py --agent "$f" > /tmp/bench_out.txt 2>&1
+            EXIT=$?
+            [ $EXIT -eq 0 ] && STATUS="PASS ✅" || { STATUS="FAIL ❌"; FAILED=1; }
+            printf "### \`%s\`: %s\n\`\`\`\n" "$f" "$STATUS" >> /tmp/comment.md
+            cat /tmp/bench_out.txt >> /tmp/comment.md
+            printf "\n\`\`\`\n\n" >> /tmp/comment.md
+            cat /tmp/bench_out.txt
+          done
+
+          gh api "repos/$REPO/commits/$SHA/comments" \
+            -f body="$(cat /tmp/comment.md)" \
+            || echo "Comment post failed (non-fatal)"
+
+          exit $FAILED

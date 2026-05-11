@@ -1,0 +1,31 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(rtk ls *)",
+      "Bash(rtk find *)",
+      "Bash(rtk tree *)",
+      "Bash(python test_agent.py)",
+      "Bash(python3 test_agent.py)",
+      "Bash(rtk pip *)",
+      "Bash(uv venv *)",
+      "Bash(.venv/bin/pip install *)",
+      "Bash(rtk uv *)",
+      "Bash(.venv/bin/python3 test_agent.py)",
+      "Bash(.venv/bin/python3 *)",
+      "Bash(rtk grep *)",
+      "Bash(.venv/bin/python *)",
+      "Bash(python *)",
+      "Bash(python3 *)",
+      "Bash(rtk read *)",
+      "Bash(kaggle competitions *)",
+      "Bash(.venv/bin/kaggle competitions *)",
+      "Bash(.venv/bin/kaggle episodes *)",
+      "Bash(2>&1)",
+      "Bash(rtk diff *)",
+      "Bash(chmod +x morning_check.sh)",
+      "Bash(bash morning_check.sh)",
+      "Bash(git init *)",
+      "Bash(rtk git *)"
+    ]
+  }
+}
