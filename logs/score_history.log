@@ -7618,3 +7618,23 @@
   Error: 401 Client Error: Unauthorized for url: https://api.kaggle.com/v1/competitions.CompetitionApiService/ListSubmissions
 
 ========================================
+========================================
+  Orbit Wars Morning Check — 2026-06-30 19:46
+========================================
+
+[LEADERBOARD]
+  (leaderboard unavailable)
+
+[LATEST SUBMISSION]
+  Score: ?  |  Status: error  |  Date: ?
+
+[RATING DELTA (24h)]
+  No .last_score file — first run, delta available tomorrow
+
+[FAILED SUBMISSIONS]
+  Error: No module named 'kagglesdk.competitions.legacy'
+
+[EPISODE COUNT — latest submission]
+  Error: No module named 'kagglesdk.competitions.legacy'
+
+========================================
