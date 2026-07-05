@@ -8398,3 +8398,23 @@
   Error: 401 Client Error: Unauthorized for url: https://api.kaggle.com/v1/competitions.CompetitionApiService/ListSubmissions
 
 ========================================
+========================================
+  Orbit Wars Morning Check — 2026-07-05 13:17
+========================================
+
+[LEADERBOARD]
+  (leaderboard unavailable)
+
+[LATEST SUBMISSION]
+  Score: ?  |  Status: error  |  Date: ?
+
+[RATING DELTA (24h)]
+  No .last_score file — first run, delta available tomorrow
+
+[FAILED SUBMISSIONS]
+  Error: 401 Client Error: Unauthorized for url: https://api.kaggle.com/v1/competitions.CompetitionApiService/ListSubmissions
+
+[EPISODE COUNT — latest submission]
+  Error: 401 Client Error: Unauthorized for url: https://api.kaggle.com/v1/competitions.CompetitionApiService/ListSubmissions
+
+========================================
